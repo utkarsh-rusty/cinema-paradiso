@@ -11,6 +11,11 @@ django.setup()
 error = []
 from recommender.models import Movie  
 
+# Delete all existing entries in the Movie model
+Movie.objects.all().delete()
+
+print("All existing movies have been deleted.")
+
 def load_imdb_data():
     # Load basics data
     basics_df = pd.read_csv('/Users/utkarsh/Downloads/IMDb Data/title.basics.tsv', sep='\t', dtype=str)
@@ -26,6 +31,15 @@ def load_imdb_data():
     
     # Drop rows with missing essential information
     movies_df = movies_df.dropna(subset=['primaryTitle', 'averageRating', 'startYear'])
+
+    # Convert 'runtimeMinutes' to numeric, forcing errors to NaN for non-numeric values
+    movies_df['runtimeMinutes'] = pd.to_numeric(movies_df['runtimeMinutes'], errors='coerce')
+
+    # Drop rows where 'runtimeMinutes' is NaN (non-numeric values converted to NaN)
+    movies_df = movies_df.dropna(subset=['runtimeMinutes'])
+
+    # Filter out movies with runtime less than 60 minutes
+    movies_df = movies_df[movies_df['runtimeMinutes'] >= 60]
     
     # Iterate over the DataFrame and save each movie to the database
     for _, row in movies_df.iterrows():

@@ -8,7 +8,7 @@ class Movie(models.Model):
     release_date = models.IntegerField(default=0)
     rating = models.FloatField()
     overview = models.TextField()
-    runtime = models.TextField(default="null")
+    runtime = models.IntegerField(default=0)
     num_votes = models.IntegerField(default=0)
 
     def __str__(self):
