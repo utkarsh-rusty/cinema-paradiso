@@ -64,10 +64,10 @@ movies_df['features'] = movies_df['genres'] + ' ' + movies_df['keywords'] + ' ' 
 tfidf = TfidfVectorizer(stop_words='english')
 tfidf_matrix = tfidf.fit_transform(movies_df['features'])
 
-# Convert TF-IDF matrix to a sparse matrix format
+#Convert TF-IDF matrix to a sparse matrix format
 sparse_tfidf_matrix = csr_matrix(tfidf_matrix)
 
-# Calculate cosine similarity on sparse matrix
+#Calculate cosine similarity on sparse matrix
 content_similarity = cosine_similarity(sparse_tfidf_matrix, dense_output=False)
 
 # # Calculate cosine similarity for content-based filtering
@@ -84,37 +84,119 @@ collaborative_similarity = cosine_similarity(user_movie_ratings.T)  # Item-based
 collaborative_similarity_df = pd.DataFrame(collaborative_similarity, index=user_movie_ratings.columns, columns=user_movie_ratings.columns)
 
 
-def get_hybrid_recommendations(movie_id, top_n=10, content_weight=0.5):
-    # Get index of the movie
-    movie_idx = movies_df[movies_df['id'] == movie_id].index[0]
+def get_hybrid_recommendations(movie_title, top_n=10, content_weight=0.5):
+    # Standardize the input title format for comparison
+    movie_title = movie_title.strip().lower()
+
+    # Standardize all titles in the DataFrame
+    movies_df['title_lower'] = movies_df['title'].str.lower().str.strip()
+
+    # Check if the movie title exists in the dataset
+    if movie_title not in movies_df['title_lower'].values:
+        raise ValueError(f"Movie '{movie_title}' not found in the dataset.")
     
+    # Get index of the movie by title
+    movie_idx = movies_df[movies_df['title_lower'] == movie_title].index[0]
+    movie_id = movies_df.loc[movie_idx, 'id']  # Get the movie ID for collaborative filtering
+
     # Get content-based scores
     content_scores = list(enumerate(content_similarity[movie_idx]))
-    
-    # Get collaborative scores
+
+    # Get collaborative scores from collaborative_similarity_df
     if movie_id in collaborative_similarity_df.columns:
-        collaborative_scores = collaborative_similarity_df[movie_id]
+        collaborative_scores = collaborative_similarity_df[movie_id]  # Convert to dense array
     else:
         collaborative_scores = pd.Series([0] * len(movies_df), index=movies_df.index)
-    
+
     # Combine scores with weighting
     scores = []
     for idx, content_score in content_scores:
-        collab_score = collaborative_scores[idx] if idx in collaborative_scores.index else 0
+        collab_score = collaborative_scores[idx] if idx < len(collaborative_scores) else 0
         combined_score = content_weight * content_score + (1 - content_weight) * collab_score
         scores.append((idx, combined_score))
-    
+
     # Sort by score and get top results
     scores = sorted(scores, key=lambda x: x[1], reverse=True)
     top_movie_indices = [i[0] for i in scores[1:top_n+1]]  # Exclude the original movie
     
-    # Return recommended movie titles
+    # Retrieve recommended movies and drop 'title_lower' column before returning
     recommended_movies = movies_df.iloc[top_movie_indices][['title', 'genres', 'vote_average']]
+    movies_df.drop(columns='title_lower', inplace=True)
+    
     return recommended_movies
 
 # Get recommendations for a movie with ID=1
-recommendations = get_hybrid_recommendations(movie_id=186, top_n=10, content_weight=0.7)
+recommendations = get_hybrid_recommendations(movie_title='The Godfather', top_n=10, content_weight=0.7)
 print(recommendations)
+
+# def get_hybrid_recommendations(movie_title, top_n=10, content_weight=0.5):
+#     # Check if the movie title exists in the dataset
+#     if movie_title not in movies_df['title'].values:
+#         raise ValueError(f"Movie '{movie_title}' not found in the dataset.")
+    
+#     # Get index of the movie by title
+#     movie_idx = movies_df[movies_df['title'] == movie_title].index[0]
+#     movie_id = movies_df.loc[movie_idx, 'id']  # Get the movie ID for collaborative filtering
+
+#     # Get content-based scores
+#     #content_scores = list(enumerate(content_similarity[movie_idx]))
+
+#     # Get similarity scores for a single movie
+#     content_scores = cosine_similarity(tfidf_matrix[movie_idx], tfidf_matrix).flatten()
+
+#     # Get collaborative scores
+#     if movie_id in collaborative_similarity_df.columns:
+#         collaborative_scores = collaborative_similarity_df[movie_id]
+#     else:
+#         collaborative_scores = pd.Series([0] * len(movies_df), index=movies_df.index)
+
+#     # Combine scores with weighting
+#     scores = []
+#     for idx, content_score in content_scores:
+#         collab_score = collaborative_scores[idx] if idx in collaborative_scores.index else 0
+#         combined_score = content_weight * content_score + (1 - content_weight) * collab_score
+#         scores.append((idx, combined_score))
+
+#     # Sort by score and get top results
+#     scores = sorted(scores, key=lambda x: x[1], reverse=True)
+#     top_movie_indices = [i[0] for i in scores[1:top_n+1]]  # Exclude the original movie
+
+#     # Return recommended movie titles
+#     recommended_movies = movies_df.iloc[top_movie_indices][['title', 'genres', 'vote_average']]
+#     return recommended_movies
+
+
+# # Get recommendations for a movie with ID=1
+# recommendations = get_hybrid_recommendations(movie_id=186, top_n=10, content_weight=0.7)
+# print(recommendations)
+
+# def get_hybrid_recommendations(movie_id, top_n=10, content_weight=0.5):
+#     # Get index of the movie
+#     movie_idx = movies_df[movies_df['id'] == movie_id].index[0]
+    
+#     # Get content-based scores
+#     content_scores = list(enumerate(content_similarity[movie_idx]))
+    
+#     # Get collaborative scores
+#     if movie_id in collaborative_similarity_df.columns:
+#         collaborative_scores = collaborative_similarity_df[movie_id]
+#     else:
+#         collaborative_scores = pd.Series([0] * len(movies_df), index=movies_df.index)
+    
+#     # Combine scores with weighting
+#     scores = []
+#     for idx, content_score in content_scores:
+#         collab_score = collaborative_scores[idx] if idx in collaborative_scores.index else 0
+#         combined_score = content_weight * content_score + (1 - content_weight) * collab_score
+#         scores.append((idx, combined_score))
+    
+#     # Sort by score and get top results
+#     scores = sorted(scores, key=lambda x: x[1], reverse=True)
+#     top_movie_indices = [i[0] for i in scores[1:top_n+1]]  # Exclude the original movie
+    
+#     # Return recommended movie titles
+#     recommended_movies = movies_df.iloc[top_movie_indices][['title', 'genres', 'vote_average']]
+#     return recommended_movies
 
 
 

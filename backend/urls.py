@@ -16,7 +16,9 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from recommender import views
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('recommend/', views.get_content_based_recommendations),
 ]

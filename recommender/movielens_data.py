@@ -13,15 +13,15 @@ error = []
 from recommender.models import Movie, Rating, Keyword, Credit  
 
 # Delete all existing entries in the Movie model
-Movie.objects.all().delete()
+Rating.objects.all().delete()
 
-print("All existing movies have been deleted.")
+print("All existing ratings have been deleted.")
 
 # Paths to the data files
 movies_metadata_path = "/Users/utkarsh/Downloads/archive/movies_metadata.csv"
 keywords_path = "/Users/utkarsh/Downloads/archive/keywords.csv"
 credits_path = "/Users/utkarsh/Downloads/archive/credits.csv"
-ratings_path = "/Users/utkarsh/Downloads/archive/ratings_small.csv"
+ratings_path = "/Users/utkarsh/Downloads/archive/ratings.csv"
 
 # Load Movies Metadata
 movies_metadata = pd.read_csv(movies_metadata_path, low_memory=False)
@@ -58,23 +58,23 @@ movies_metadata['genres'] = movies_metadata['genres'].apply(parse_genres)
 #@transaction.atomic
 def load_data():
     # Load movies into the database
-    for _, row in movies_metadata.iterrows():
-        try:
-            movie, created = Movie.objects.get_or_create(
-                id=row['id'],
-                defaults={
-                    'title': row['title'],
-                    'overview': row.get('overview', ''),
-                    'runtime': pd.to_numeric(row.get('runtime'), errors='coerce'),
-                    'release_date': pd.to_datetime(row.get('release_date'), errors='coerce').date() if pd.notnull(row.get('release_date')) else None,
-                    'genres': row.get('genres', ''),
-                    'vote_average': pd.to_numeric(row.get('vote_average'), errors='coerce'),
-                    'vote_count': pd.to_numeric(row.get('vote_count'), errors='coerce')
-                }
-            )
-            print(f"Loaded movie: {row['title']}")
-        except:
-            print(f"Error Loaded movie: {row['title']}")
+    # for _, row in movies_metadata.iterrows():
+    #     try:
+    #         movie, created = Movie.objects.get_or_create(
+    #             id=row['id'],
+    #             defaults={
+    #                 'title': row['title'],
+    #                 'overview': row.get('overview', ''),
+    #                 'runtime': pd.to_numeric(row.get('runtime'), errors='coerce'),
+    #                 'release_date': pd.to_datetime(row.get('release_date'), errors='coerce').date() if pd.notnull(row.get('release_date')) else None,
+    #                 'genres': row.get('genres', ''),
+    #                 'vote_average': pd.to_numeric(row.get('vote_average'), errors='coerce'),
+    #                 'vote_count': pd.to_numeric(row.get('vote_count'), errors='coerce')
+    #             }
+    #         )
+    #         print(f"Loaded movie: {row['title']}")
+    #     except:
+    #         print(f"Error Loaded movie: {row['title']}")
 
     # Get all existing movie IDs for validation
     existing_movie_ids = set(Movie.objects.values_list('id', flat=True))
@@ -93,31 +93,31 @@ def load_data():
             print(f"error Loaded rating: {row['movieId']} error is {error}")
 
     # Load keywords into the database
-    for _, row in keywords.iterrows():
-        try:
-            if row['id'] in existing_movie_ids:
-                for keyword in ast.literal_eval(row['keywords']):
-                    Keyword.objects.create(
-                        movie_id=row['id'],
-                        name=keyword['name']
-                    )
-                print(f"Loaded keywords: {row['id']}")
-        except:
-            print(f"error Loaded keywords: {row['id']}")
+    # for _, row in keywords.iterrows():
+    #     try:
+    #         if row['id'] in existing_movie_ids:
+    #             for keyword in ast.literal_eval(row['keywords']):
+    #                 Keyword.objects.create(
+    #                     movie_id=row['id'],
+    #                     name=keyword['name']
+    #                 )
+    #             print(f"Loaded keywords: {row['id']}")
+    #     except:
+    #         print(f"error Loaded keywords: {row['id']}")
 
     #Load credits into the database
-    for _, row in credits.iterrows():
-        try:
-            if row['id'] in existing_movie_ids:
-                for cast in ast.literal_eval(row['cast']):
-                    Credit.objects.create(
-                        movie_id=row['id'],
-                        name=cast['name'],
-                        role=cast['character']  # or 'job' for crew roles if needed
-                    )
-                print(f"Loaded credits: {row['id']}")
-        except:
-            print(f"error Loaded credits: {row['id']}")
+    # for _, row in credits.iterrows():
+    #     try:
+    #         if row['id'] in existing_movie_ids:
+    #             for cast in ast.literal_eval(row['cast']):
+    #                 Credit.objects.create(
+    #                     movie_id=row['id'],
+    #                     name=cast['name'],
+    #                     role=cast['character']  # or 'job' for crew roles if needed
+    #                 )
+    #             print(f"Loaded credits: {row['id']}")
+    #     except:
+    #         print(f"error Loaded credits: {row['id']}")
 
 if __name__ == "__main__":
     load_data()
